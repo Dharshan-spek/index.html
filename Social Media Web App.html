@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse - Social Media Experience</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .transition-height { transition: max-height 0.3s ease-out, opacity 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-full flex flex-col transition-colors duration-200">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Edit Profile Modal -->
+    <div id="edit-profile-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700 transform transition-all scale-100">
+            <div class="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-xl font-bold">Edit Profile</h3>
+                <button onclick="closeEditProfileModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <form id="edit-profile-form" onsubmit="handleProfileUpdate(event)" class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Name</label>
+                    <input type="text" id="edit-name" required class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Handle</label>
+                    <input type="text" id="edit-handle" required class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Bio</label>
+                    <textarea id="edit-bio" rows="3" class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 focus:ring-2 focus:ring-brand-500 outline-none resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Avatar URL</label>
+                    <input type="url" id="edit-avatar" required class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Cover Image URL</label>
+                    <input type="url" id="edit-cover" required class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="closeEditProfileModal()" class="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium transition shadow-lg shadow-brand-500/30">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700 text-center">
+            <i class="fa-solid fa-share-nodes text-4xl text-brand-500 mb-3"></i>
+            <h3 class="text-xl font-bold mb-2">Share Post</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Copy link or share to your favorite networks!</p>
+            <div class="flex justify-center gap-4 mb-6">
+                <button onclick="copyShareLink()" class="p-3 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-brand-50 dark:hover:bg-gray-600 text-brand-600 dark:text-brand-400 transition" title="Copy Link">
+                    <i class="fa-solid fa-link text-lg"></i>
+                </button>
+                <button onclick="simulateSocialShare('Twitter')" class="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-full hover:bg-blue-100 text-blue-500 transition" title="Share on Twitter">
+                    <i class="fa-brands fa-twitter text-lg"></i>
+                </button>
+                <button onclick="simulateSocialShare('LinkedIn')" class="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-full hover:bg-blue-100 text-blue-700 dark:text-blue-400 transition" title="Share on LinkedIn">
+                    <i class="fa-brands fa-linkedin-in text-lg"></i>
+                </button>
+            </div>
+            <button onclick="closeShareModal()" class="w-full py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">Close</button>
+        </div>
+    </div>
+
+    <!-- Main Outer Layout -->
+    <div class="max-w-7xl w-full mx-auto flex-1 flex flex-col md:flex-row gap-6 p-2 sm:p-4 lg:p-6">
+
+        <!-- Mobile Header Topbar -->
+        <header class="md:hidden flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mb-2">
+            <div class="flex items-center gap-2">
+                <button onclick="toggleMobileDrawer()" class="p-2 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div class="flex items-center gap-2 font-black text-xl text-brand-600 dark:text-brand-500">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Pulse</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Mobile Plan Switcher -->
+                <button onclick="toggleUserPlan()" class="plan-toggle-btn px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                    <!-- JS injects content -->
+                </button>
+                <button onclick="toggleTheme()" class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Sidebar / Drawer Navigation -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 md:bg-transparent md:dark:bg-transparent p-4 md:p-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out md:static md:w-64 flex-shrink-0 flex flex-col justify-between h-full md:h-auto border-r md:border-r-0 border-gray-200 dark:border-gray-700">
+            <div class="space-y-6">
+                <!-- Brand Logo Desktop -->
+                <div class="hidden md:flex items-center justify-between px-3 py-2">
+                    <div class="flex items-center gap-2 font-black text-2xl text-brand-600 dark:text-brand-500">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Pulse</span>
+                    </div>
+                    <button onclick="toggleTheme()" class="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition" title="Toggle Theme">
+                        <i class="fa-solid fa-moon dark:hidden"></i>
+                        <i class="fa-solid fa-sun hidden dark:block"></i>
+                    </button>
+                </div>
+
+                <!-- Plan Status Box (Desktop & Drawer Sidebar) -->
+                <div class="p-4 bg-gradient-to-br from-indigo-50 to-brand-50 dark:from-gray-800 dark:to-gray-700/50 rounded-2xl border border-indigo-100 dark:border-gray-700">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Current Plan</span>
+                        <span id="sidebar-plan-badge" class="px-2 py-0.5 rounded-full text-xs font-bold"></span>
+                    </div>
+                    <p id="sidebar-plan-desc" class="text-xs text-gray-600 dark:text-gray-300 mb-3"></p>
+                    <button onclick="toggleUserPlan()" class="plan-toggle-btn w-full py-2 px-3 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2">
+                        <!-- JS injects content -->
+                    </button>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="space-y-1">
+                    <button onclick="switchView('feed')" id="nav-feed" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition text-left">
+                        <i class="fa-solid fa-house text-lg w-5"></i>
+                        <span>Home Feed</span>
+                    </button>
+                    <button onclick="switchView('explore')" id="nav-explore" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition text-left">
+                        <i class="fa-solid fa-compass text-lg w-5"></i>
+                        <span>Explore</span>
+                    </button>
+                    <button onclick="switchView('notifications')" id="nav-notifications" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition text-left relative">
+                        <i class="fa-solid fa-bell text-lg w-5"></i>
+                        <span>Notifications</span>
+                        <span class="ml-auto bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">3</span>
+                    </button>
+                    <button onclick="switchView('messages')" id="nav-messages" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition text-left relative">
+                        <i class="fa-solid fa-envelope text-lg w-5"></i>
+                        <span>Messages</span>
+                    </button>
+                    <button onclick="switchView('profile')" id="nav-profile" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition text-left">
+                        <i class="fa-solid fa-user text-lg w-5"></i>
+                        <span>Profile</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- User Mini Profile at bottom of sidebar -->
+            <div class="pt-4 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="switchView('profile')">
+                    <img id="sidebar-user-avatar" src="" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700">
+                    <div class="overflow-hidden">
+                        <div class="flex items-center gap-1">
+                            <p id="sidebar-user-name" class="font-semibold text-sm truncate"></p>
+                            <span id="sidebar-user-verified" class="text-gold-500 text-xs hidden" title="Premium Member"><i class="fa-solid fa-circle-check"></i></span>
+                        </div>
+                        <p id="sidebar-user-handle" class="text-xs text-gray-500 dark:text-gray-400 truncate"></p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Overlay for Mobile Drawer -->
+        <div id="drawer-overlay" onclick="toggleMobileDrawer()" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
+
+        <!-- Central Main View Area -->
+        <main class="flex-1 max-w-2xl w-full mx-auto space-y-6">
+
+            <!-- VIEW 1: HOME FEED -->
+            <div id="view-feed" class="space-y-6">
+
+                <!-- Mock Ad Banner Container (Dynamically Shown for Free Users) -->
+                <div id="ad-banner-container" class="transition-all duration-300 overflow-hidden">
+                    <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white rounded-2xl p-4 shadow-lg relative flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <button onclick="closeAdBanner()" class="absolute top-2 right-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full w-6 h-6 flex items-center justify-center text-xs transition">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="flex items-center gap-3">
+                            <div class="bg-white/20 p-3 rounded-xl flex-shrink-0 backdrop-blur-sm">
+                                <i class="fa-solid fa-rectangle-ad text-2xl"></i>
+                            </div>
+                            <div>
+                                <span class="bg-white/20 text-xs px-2 py-0.5 rounded uppercase tracking-wider font-bold">Sponsored</span>
+                                <h4 class="font-bold text-base leading-tight mt-0.5">Upgrade to Pulse Premium!</h4>
+                                <p class="text-xs text-white/90">Remove ads, get exclusive gold badges, and unlock priority feeds.</p>
+                            </div>
+                        </div>
+                        <button onclick="toggleUserPlan()" class="bg-white text-orange-600 font-bold px-4 py-2 rounded-xl text-xs hover:bg-orange-50 transition shadow-md whitespace-nowrap">
+                            Upgrade $4.99/mo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Post Creation Widget -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex gap-3">
+                        <img id="create-post-avatar" src="" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                        <div class="flex-1">
+                            <textarea id="post-input" rows="3" placeholder="What's happening on Pulse?" class="w-full border-none bg-transparent resize-none outline-none text-gray-800 dark:text-gray-100 placeholder-gray-400 text-sm focus:ring-0"></textarea>
+
+                            <!-- Image Attachment Preview -->
+                            <div id="image-preview-container" class="relative hidden mb-3">
+                                <img id="image-preview" src="" alt="Preview" class="w-full max-h-60 object-cover rounded-xl">
+                                <button onclick="removeAttachedImage()" class="absolute top-2 right-2 bg-black/60 hover:bg-black text-white rounded-full p-1.5 transition">
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                            </div>
+
+                            <!-- Post Actions Bar -->
+                            <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700/60">
+                                <div class="flex items-center gap-3 text-brand-500">
+                                    <label class="cursor-pointer hover:bg-brand-50 dark:hover:bg-gray-700 p-2 rounded-lg transition" title="Attach Image">
+                                        <i class="fa-regular fa-image text-lg"></i>
+                                        <input type="file" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                                    </label>
+                                    <button onclick="insertHashtag()" class="hover:bg-brand-50 dark:hover:bg-gray-700 p-2 rounded-lg transition" title="Add Hashtag">
+                                        <i class="fa-solid fa-hashtag text-lg"></i>
+                                    </button>
+                                    <button onclick="showEmojiToast()" class="hover:bg-brand-50 dark:hover:bg-gray-700 p-2 rounded-lg transition" title="Emoji">
+                                        <i class="fa-regular fa-face-smile text-lg"></i>
+                                    </button>
+                                </div>
+                                <button onclick="createNewPost()" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2 rounded-xl text-sm transition shadow-md shadow-brand-500/20">
+                                    Post
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feed Posts Container -->
+                <div id="posts-container" class="space-y-4"></div>
+            </div>
+
+            <!-- VIEW 2: PROFILE VIEW -->
+            <div id="view-profile" class="hidden space-y-6">
+                <!-- Cover & Avatar Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="h-44 sm:h-52 w-full relative bg-gray-200 dark:bg-gray-700">
+                        <img id="profile-cover" src="" alt="Cover" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-4 sm:p-6 relative">
+                        <div class="flex justify-between items-end -mt-16 sm:-mt-20 mb-4">
+                            <img id="profile-avatar" src="" alt="Avatar" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-800 object-cover shadow-md">
+                            <button onclick="openEditProfileModal()" class="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                Edit Profile
+                            </button>
+                        </div>
+                        
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 id="profile-name" class="text-xl font-bold"></h2>
+                                <span id="profile-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold"></span>
+                            </div>
+                            <p id="profile-handle" class="text-sm text-gray-500 dark:text-gray-400 mb-3"></p>
+                            <p id="profile-bio" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4"></p>
+
+                            <!-- Followers / Stats -->
+                            <div class="flex gap-6 text-sm border-t border-gray-100 dark:border-gray-700/60 pt-4">
+                                <div><strong id="profile-following-count" class="font-bold text-gray-900 dark:text-white">128</strong> <span class="text-gray-500">Following</span></div>
+                                <div><strong id="profile-followers-count" class="font-bold text-gray-900 dark:text-white">1.4k</strong> <span class="text-gray-500">Followers</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Tabs -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex border-b border-gray-100 dark:border-gray-700">
+                        <button onclick="switchProfileTab('posts')" id="tab-btn-posts" class="profile-tab flex-1 py-3 text-center text-sm font-semibold border-b-2 border-brand-500 text-brand-600 dark:text-brand-400">Posts</button>
+                        <button onclick="switchProfileTab('media')" id="tab-btn-media" class="profile-tab flex-1 py-3 text-center text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300">Media</button>
+                        <button onclick="switchProfileTab('likes')" id="tab-btn-likes" class="profile-tab flex-1 py-3 text-center text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300">Likes</button>
+                        <button onclick="switchProfileTab('saved')" id="tab-btn-saved" class="profile-tab flex-1 py-3 text-center text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300">Saved</button>
+                    </div>
+
+                    <div id="profile-tab-content" class="p-4 space-y-4">
+                        <!-- Content dynamically loaded based on active tab -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 3: EXPLORE / NOTIFICATIONS / MESSAGES (Placeholder Pages) -->
+            <div id="view-generic" class="hidden bg-white dark:bg-gray-800 rounded-2xl p-8 text-center shadow-sm border border-gray-100 dark:border-gray-800">
+                <i id="generic-icon" class="fa-solid fa-compass text-5xl text-brand-500 mb-4"></i>
+                <h3 id="generic-title" class="text-2xl font-bold mb-2">Explore Pulse</h3>
+                <p id="generic-desc" class="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">Discover trending topics, popular creators, and breaking discussions across the network.</p>
+            </div>
+
+        </main>
+
+        <!-- Right Sidebar (Trending & Recommendations) -->
+        <aside class="hidden lg:block w-72 flex-shrink-0 space-y-6">
+            <!-- Search Widget -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass text-gray-400 ml-2"></i>
+                <input type="text" placeholder="Search Pulse..." class="bg-transparent border-none outline-none text-sm w-full focus:ring-0">
+            </div>
+
+            <!-- Trending Topics -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+                <h3 class="font-bold text-base mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-fire text-orange-500"></i> Trending Topics
+                </h3>
+                <div class="space-y-3">
+                    <div class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-xl transition">
+                        <span class="text-xs text-gray-400">Technology · Trending</span>
+                        <h4 class="font-semibold text-sm">#WebDevelopment</h4>
+                        <span class="text-xs text-gray-400">24.5k posts</span>
+                    </div>
+                    <div class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-xl transition">
+                        <span class="text-xs text-gray-400">Design · Trending</span>
+                        <h4 class="font-semibold text-sm">#UIUXDesign</h4>
+                        <span class="text-xs text-gray-400">18.2k posts</span>
+                    </div>
+                    <div class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-xl transition">
+                        <span class="text-xs text-gray-400">AI · Trending</span>
+                        <h4 class="font-semibold text-sm">#GenerativeAI</h4>
+                        <span class="text-xs text-gray-400">45.1k posts</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggested Accounts -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+                <h3 class="font-bold text-base mb-3">Who to Follow</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100" class="w-9 h-9 rounded-full object-cover">
+                            <div>
+                                <p class="font-semibold text-xs leading-tight">Sarah Jenkins</p>
+                                <p class="text-xs text-gray-400">@sarah_codes</p>
+                            </div>
+                        </div>
+                        <button onclick="this.innerText = this.innerText === 'Follow' ? 'Following' : 'Follow'; this.classList.toggle('bg-brand-600'); this.classList.toggle('text-white');" class="px-3 py-1 rounded-full text-xs font-semibold border border-brand-500 text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-gray-700 transition">Follow</button>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100" class="w-9 h-9 rounded-full object-cover">
+                            <div>
+                                <p class="font-semibold text-xs leading-tight">Alex Rivera</p>
+                                <p class="text-xs text-gray-400">@arivera_ui</p>
+                            </div>
+                        </div>
+                        <button onclick="this.innerText = this.innerText === 'Follow' ? 'Following' : 'Follow'; this.classList.toggle('bg-brand-600'); this.classList.toggle('text-white');" class="px-3 py-1 rounded-full text-xs font-semibold border border-brand-500 text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-gray-700 transition">Follow</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- STATE MANAGEMENT ---
+        let state = {
+            currentUser: {
+                name: "Alex Morgan",
+                handle: "@alexm_dev",
+                bio: "Full-stack developer & UI designer crafting modern digital experiences. Powered by coffee ☕",
+                avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
+                cover: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800",
+                plan: "Free", // "Free" or "Premium"
+                following: 128,
+                followers: 1420
+            },
+            attachedImage: null,
+            activeView: 'feed',
+            activeProfileTab: 'posts',
+            posts: [
+                {
+                    id: 1,
+                    author: {
+                        name: "Tech Pulse News",
+                        handle: "@techpulse",
+                        avatar: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100",
+                        isPremium: true
+                    },
+                    content: "Excited to unveil our new developer tools dashboard! Built with high performance and accessibility in mind. What do you think of this layout? #WebDev #DesignSystem",
+                    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=700",
+                    likes: 124,
+                    liked: false,
+                    saved: false,
+                    timestamp: "2 hours ago",
+                    comments: [
+                        { author: "Liam Chen", handle: "@liam_c", text: "Looks incredible! Love the clean aesthetic." },
+                        { author: "Maya Lin", handle: "@mayalin", text: "Is there a dark mode option out of the box?" }
+                    ]
+                },
+                {
+                    id: 2,
+                    author: {
+                        name: "Jessica Taylor",
+                        handle: "@jtaylor_design",
+                        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
+                        isPremium: false
+                    },
+                    content: "Just finished a marathon coding session. Remember to stretch and drink water today everyone! 💧✨ #DeveloperLife #SelfCare",
+                    image: null,
+                    likes: 42,
+                    liked: false,
+                    saved: true,
+                    timestamp: "5 hours ago",
+                    comments: []
+                }
+            ]
+        };
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            renderUserInformation();
+            renderPosts();
+            updateNavigationState();
+        };
+
+        // --- THEME TOGGLE ---
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            showToast('Theme updated successfully', 'info');
+        }
+
+        // --- USER PLAN / STATUS SWITCHER ---
+        function toggleUserPlan() {
+            state.currentUser.plan = state.currentUser.plan === 'Free' ? 'Premium' : 'Free';
+            renderUserInformation();
+            
+            if (state.currentUser.plan === 'Premium') {
+                showToast('Upgraded to Premium Member! Ads removed.', 'success');
+            } else {
+                showToast('Switched to Free Plan. Ads restored.', 'info');
+            }
+        }
+
+        function closeAdBanner() {
+            const banner = document.getElementById('ad-banner-container');
+            banner.style.maxHeight = '0px';
+            banner.style.opacity = '0';
+            setTimeout(() => { banner.style.display = 'none'; }, 300);
+            showToast('Ad dismissed for session.', 'info');
+        }
+
+        // --- RENDER USER DATA IN UI ---
+        function renderUserInformation() {
+            const isPremium = state.currentUser.plan === 'Premium';
+
+            // Ad Banner Visibility
+            const adContainer = document.getElementById('ad-banner-container');
+            if (isPremium) {
+                adContainer.style.display = 'none';
+            } else {
+                adContainer.style.display = 'block';
+                adContainer.style.maxHeight = '200px';
+                adContainer.style.opacity = '1';
+            }
+
+            // Plan Toggle Buttons Setup
+            const planBtns = document.querySelectorAll('.plan-toggle-btn');
+            planBtns.forEach(btn => {
+                if (isPremium) {
+                    btn.className = 'plan-toggle-btn w-full py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-400 to-gold-500 text-gray-900 shadow-md hover:brightness-105';
+                    btn.innerHTML = `<i class="fa-solid fa-crown text-gray-900"></i> Premium Active (Switch)`;
+                } else {
+                    btn.className = 'plan-toggle-btn w-full py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white shadow-md';
+                    btn.innerHTML = `<i class="fa-solid fa-arrow-up-right-dots"></i> Upgrade to Premium`;
+                }
+            });
+
+            // Sidebar Plan Badge & Desc
+            const badge = document.getElementById('sidebar-plan-badge');
+            const desc = document.getElementById('sidebar-plan-desc');
+            if (isPremium) {
+                badge.className = 'px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
+                badge.innerText = 'PREMIUM';
+                desc.innerText = 'Enjoying ad-free browsing and premium status.';
+            } else {
+                badge.className = 'px-2 py-0.5 rounded-full text-xs font-bold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                badge.innerText = 'FREE';
+                desc.innerText = 'Ad-supported. Upgrade for an enhanced feed.';
+            }
+
+            // Update Avatars & Text across UI
+            document.getElementById('sidebar-user-avatar').src = state.currentUser.avatar;
+            document.getElementById('sidebar-user-name').innerText = state.currentUser.name;
+            document.getElementById('sidebar-user-handle').innerText = state.currentUser.handle;
+            document.getElementById('create-post-avatar').src = state.currentUser.avatar;
+
+            const sidebarVerified = document.getElementById('sidebar-user-verified');
+            if (isPremium) {
+                sidebarVerified.classList.remove('hidden');
+            } else {
+                sidebarVerified.classList.add('hidden');
+            }
+
+            // Profile View Details
+            document.getElementById('profile-name').innerText = state.currentUser.name;
+            document.getElementById('profile-handle').innerText = state.currentUser.handle;
+            document.getElementById('profile-bio').innerText = state.currentUser.bio;
+            document.getElementById('profile-avatar').src = state.currentUser.avatar;
+            document.getElementById('profile-cover').src = state.currentUser.cover;
+
+            const profileBadge = document.getElementById('profile-badge');
+            if (isPremium) {
+                profileBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400/20 text-amber-600 dark:text-amber-400 border border-amber-400/30';
+                profileBadge.innerHTML = `<i class="fa-solid fa-crown mr-1"></i> Premium Member`;
+            } else {
+                profileBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
+                profileBadge.innerText = 'Free Tier';
+            }
+        }
+
+        // --- VIEW SWITCHING ---
+        function switchView(viewName) {
+            state.activeView = viewName;
+            document.getElementById('view-feed').classList.add('hidden');
+            document.getElementById('view-profile').classList.add('hidden');
+            document.getElementById('view-generic').classList.add('hidden');
+
+            updateNavigationState();
+
+            if (viewName === 'feed') {
+                document.getElementById('view-feed').classList.remove('hidden');
+            } else if (viewName === 'profile') {
+                document.getElementById('view-profile').classList.remove('hidden');
+                renderProfileTabContent();
+            } else {
+                const generic = document.getElementById('view-generic');
+                const icon = document.getElementById('generic-icon');
+                const title = document.getElementById('generic-title');
+                const desc = document.getElementById('generic-desc');
+
+                generic.classList.remove('hidden');
+                if (viewName === 'explore') {
+                    icon.className = 'fa-solid fa-compass text-5xl text-brand-500 mb-4';
+                    title.innerText = 'Explore Pulse';
+                    desc.innerText = 'Discover trending topics, popular creators, and breaking discussions across the network.';
+                } else if (viewName === 'notifications') {
+                    icon.className = 'fa-solid fa-bell text-5xl text-brand-500 mb-4';
+                    title.innerText = 'Notifications';
+                    desc.innerText = 'Stay updated with your latest likes, comments, retweets, and mentions.';
+                } else if (viewName === 'messages') {
+                    icon.className = 'fa-solid fa-envelope text-5xl text-brand-500 mb-4';
+                    title.innerText = 'Direct Messages';
+                    desc.innerText = 'Connect with fellow creators and friends in private conversations.';
+                }
+            }
+
+            // Close mobile drawer if open
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+            document.getElementById('drawer-overlay').classList.add('hidden');
+        }
+
+        function updateNavigationState() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('bg-brand-50', 'dark:bg-gray-700', 'text-brand-600', 'dark:text-brand-400');
+            });
+            const activeNav = document.getElementById(`nav-${state.activeView}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-brand-50', 'dark:bg-gray-700', 'text-brand-600', 'dark:text-brand-400');
+            }
+        }
+
+        function toggleMobileDrawer() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('drawer-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        // --- POST CREATION ---
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    state.attachedImage = evt.target.result;
+                    document.getElementById('image-preview').src = state.attachedImage;
+                    document.getElementById('image-preview-container').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeAttachedImage() {
+            state.attachedImage = null;
+            document.getElementById('image-preview-container').classList.add('hidden');
+        }
+
+        function insertHashtag() {
+            const input = document.getElementById('post-input');
+            input.value += ' #Pulse';
+            input.focus();
+        }
+
+        function showEmojiToast() {
+            showToast('Emoji picker ready! (Type standard emojis)', 'info');
+        }
+
+        function createNewPost() {
+            const input = document.getElementById('post-input');
+            const text = input.value.trim();
+
+            if (!text && !state.attachedImage) {
+                showToast('Please enter text or attach an image!', 'error');
+                return;
+            }
+
+            const newPost = {
+                id: Date.now(),
+                author: {
+                    name: state.currentUser.name,
+                    handle: state.currentUser.handle,
+                    avatar: state.currentUser.avatar,
+                    isPremium: state.currentUser.plan === 'Premium'
+                },
+                content: text,
+                image: state.attachedImage,
+                likes: 0,
+                liked: false,
+                saved: false,
+                timestamp: 'Just now',
+                comments: []
+            };
+
+            state.posts.unshift(newPost);
+            input.value = '';
+            removeAttachedImage();
+            renderPosts();
+            showToast('Post published successfully!', 'success');
+        }
+
+        // --- RENDER POSTS ---
+        function renderPosts() {
+            const container = document.getElementById('posts-container');
+            container.innerHTML = '';
+
+            state.posts.forEach(post => {
+                container.appendChild(createPostCardElement(post));
+            });
+        }
+
+        function createPostCardElement(post) {
+            const card = document.createElement('div');
+            card.className = 'bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-800 space-y-3';
+            
+            const commentsHtml = post.comments.map(c => `
+                <div class="flex items-start gap-2 text-xs bg-gray-50 dark:bg-gray-700/50 p-2.5 rounded-xl">
+                    <span class="font-bold text-gray-900 dark:text-white">${c.author}:</span>
+                    <span class="text-gray-600 dark:text-gray-300">${c.text}</span>
+                </div>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="${post.author.avatar}" class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <h4 class="font-bold text-sm text-gray-900 dark:text-white">${post.author.name}</h4>
+                                ${post.author.isPremium ? '<span class="text-gold-500 text-xs" title="Premium Member"><i class="fa-solid fa-circle-check"></i></span>' : ''}
+                            </div>
+                            <span class="text-xs text-gray-400">${post.author.handle} · ${post.timestamp}</span>
+                        </div>
+                    </div>
+                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><i class="fa-solid fa-ellipsis"></i></button>
+                </div>
+
+                <p class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">${escapeHtml(post.content)}</p>
+
+                ${post.image ? `<img src="${post.image}" class="w-full max-h-96 object-cover rounded-xl border border-gray-100 dark:border-gray-700">` : ''}
+
+                <!-- Post Actions Button Bar -->
+                <div class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700/60 text-gray-500 dark:text-gray-400 text-xs font-semibold">
+                    <button onclick="toggleLike(${post.id})" class="flex items-center gap-1.5 hover:text-red-500 transition ${post.liked ? 'text-red-500' : ''}">
+                        <i class="${post.liked ? 'fa-solid' : 'fa-regular'} fa-heart text-base"></i>
+                        <span>${post.likes}</span>
+                    </button>
+                    <button onclick="toggleCommentBox(${post.id})" class="flex items-center gap-1.5 hover:text-brand-500 transition">
+                        <i class="fa-regular fa-comment text-base"></i>
+                        <span>${post.comments.length}</span>
+                    </button>
+                    <button onclick="toggleBookmark(${post.id})" class="flex items-center gap-1.5 hover:text-amber-500 transition ${post.saved ? 'text-amber-500' : ''}">
+                        <i class="${post.saved ? 'fa-solid' : 'fa-regular'} fa-bookmark text-base"></i>
+                    </button>
+                    <button onclick="openShareModal(${post.id})" class="flex items-center gap-1.5 hover:text-brand-500 transition">
+                        <i class="fa-solid fa-share-nodes text-base"></i>
+                    </button>
+                </div>
+
+                <!-- Comment Drawer Widget -->
+                <div id="comments-section-${post.id}" class="hidden pt-3 border-t border-gray-100 dark:border-gray-700/60 space-y-2">
+                    <div id="comments-list-${post.id}" class="space-y-2">
+                        ${commentsHtml}
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <input type="text" id="comment-input-${post.id}" placeholder="Write a comment..." class="flex-1 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-xl text-xs outline-none focus:ring-1 focus:ring-brand-500">
+                        <button onclick="addComment(${post.id})" class="bg-brand-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-brand-700 transition">Reply</button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        // --- POST INTERACTIONS ---
+        function toggleLike(postId) {
+            const post = state.posts.find(p => p.id === postId);
+            if (post) {
+                post.liked = !post.liked;
+                post.likes += post.liked ? 1 : -1;
+                renderPosts();
+                if (state.activeView === 'profile') renderProfileTabContent();
+            }
+        }
+
+        function toggleBookmark(postId) {
+            const post = state.posts.find(p => p.id === postId);
+            if (post) {
+                post.saved = !post.saved;
+                renderPosts();
+                if (state.activeView === 'profile') renderProfileTabContent();
+                showToast(post.saved ? 'Post saved to bookmarks' : 'Post removed from saved', 'info');
+            }
+        }
+
+        function toggleCommentBox(postId) {
+            const box = document.getElementById(`comments-section-${postId}`);
+            box.classList.toggle('hidden');
+        }
+
+        function addComment(postId) {
+            const input = document.getElementById(`comment-input-${postId}`);
+            const text = input.value.trim();
+            if (text) {
+                const post = state.posts.find(p => p.id === postId);
+                post.comments.push({
+                    author: state.currentUser.name,
+                    handle: state.currentUser.handle,
+                    text: text
+                });
+                renderPosts();
+                showToast('Comment added!', 'success');
+            }
+        }
+
+        // --- PROFILE TABS LOGIC ---
+        function switchProfileTab(tabName) {
+            state.activeProfileTab = tabName;
+            document.querySelectorAll('.profile-tab').forEach(tab => {
+                tab.className = 'profile-tab flex-1 py-3 text-center text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300';
+            });
+            const activeTabBtn = document.getElementById(`tab-btn-${tabName}`);
+            activeTabBtn.className = 'profile-tab flex-1 py-3 text-center text-sm font-semibold border-b-2 border-brand-500 text-brand-600 dark:text-brand-400';
+            
+            renderProfileTabContent();
+        }
+
+        function renderProfileTabContent() {
+            const container = document.getElementById('profile-tab-content');
+            container.innerHTML = '';
+
+            let filteredPosts = [];
+
+            if (state.activeProfileTab === 'posts') {
+                filteredPosts = state.posts.filter(p => p.author.handle === state.currentUser.handle);
+            } else if (state.activeProfileTab === 'media') {
+                filteredPosts = state.posts.filter(p => p.author.handle === state.currentUser.handle && p.image);
+            } else if (state.activeProfileTab === 'likes') {
+                filteredPosts = state.posts.filter(p => p.liked);
+            } else if (state.activeProfileTab === 'saved') {
+                filteredPosts = state.posts.filter(p => p.saved);
+            }
+
+            if (filteredPosts.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm">No items found in this section.</p>`;
+                return;
+            }
+
+            filteredPosts.forEach(post => {
+                container.appendChild(createPostCardElement(post));
+            });
+        }
+
+        // --- EDIT PROFILE MODAL ---
+        function openEditProfileModal() {
+            document.getElementById('edit-name').value = state.currentUser.name;
+            document.getElementById('edit-handle').value = state.currentUser.handle;
+            document.getElementById('edit-bio').value = state.currentUser.bio;
+            document.getElementById('edit-avatar').value = state.currentUser.avatar;
+            document.getElementById('edit-cover').value = state.currentUser.cover;
+
+            document.getElementById('edit-profile-modal').classList.remove('hidden');
+        }
+
+        function closeEditProfileModal() {
+            document.getElementById('edit-profile-modal').classList.add('hidden');
+        }
+
+        function handleProfileUpdate(e) {
+            e.preventDefault();
+            state.currentUser.name = document.getElementById('edit-name').value;
+            state.currentUser.handle = document.getElementById('edit-handle').value;
+            state.currentUser.bio = document.getElementById('edit-bio').value;
+            state.currentUser.avatar = document.getElementById('edit-avatar').value;
+            state.currentUser.cover = document.getElementById('edit-cover').value;
+
+            renderUserInformation();
+            closeEditProfileModal();
+            showToast('Profile updated successfully!', 'success');
+        }
+
+        // --- SHARE MODAL ---
+        function openShareModal(postId) {
+            document.getElementById('share-modal').classList.remove('hidden');
+        }
+
+        function closeShareModal() {
+            document.getElementById('share-modal').classList.add('hidden');
+        }
+
+        function copyShareLink() {
+            document.execCommand('copy');
+            closeShareModal();
+            showToast('Link copied to clipboard!', 'info');
+        }
+
+        function simulateSocialShare(network) {
+            closeShareModal();
+            showToast(`Shared to ${network}!`, 'success');
+        }
+
+        // --- TOAST SYSTEM ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let icon = 'fa-info-circle';
+            let bgColor = 'bg-gray-800 text-white dark:bg-white dark:text-gray-900';
+
+            if (type === 'success') {
+                icon = 'fa-circle-check text-green-400';
+            } else if (type === 'error') {
+                icon = 'fa-circle-exclamation text-red-400';
+            }
+
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-medium transform transition-all duration-300 translate-y-5 opacity-0 ${bgColor} pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${escapeHtml(message)}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-5', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- HELPER FUNCTIONS ---
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
